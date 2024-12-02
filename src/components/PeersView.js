@@ -1,38 +1,59 @@
 // PeersView.js
 import { html } from "htm/react";
-import { useState } from "react";
-import { jsonToMap } from "../api/data-formats/json-map-switch";
-import useSchedule from "../hooks/useSchedule";
+import { useEffect, useState, useRef } from "react";
+import { mapToJson, jsonToMap } from "../api/json-map-switch";
+import { RoomManager } from "../api/RoomManager";
+import Hyperbee from "hyperbee";
+import Hypercore from "hypercore";
+import c from "compact-encoding";
 
 export default () => {
-  const { roomIdRef, setCurrentSchedule, getCalendarRoom, sharedDbObject, inviteHexKey } = useSchedule();
+  const localBeeRef = useRef();
+  const roomIdRef = useRef("");
+  const roomManagerRef = useRef(new RoomManager({ storageDir: "./calendarStorage/roomManager" }));
   const [searchInput, setSearchInput] = useState();
 
+  Pear.teardown(async () => {
+    await roomManagerRef.current.cleanup();
+  });
+
+  useEffect(() => {
+    (async () => {
+      localBeeRef.current = await initPersonalDB();
+      await loadSharedDbs(localBeeRef.current); // returns an array of all saved rooms
+    })();
+  }, []);
+
   const handleNewRoom = async () => {
-    getCalendarRoom(undefined, true);
+    await getCalendarRoom();
   };
 
   const handleJoinRoom = async () => {
-    let bee = false;
-    for (const roomId in sharedDbObject) {
-      const roomDetails = sharedDbObject[roomId];
-      if (roomDetails.room.invite === searchInput) {
-        bee = roomDetails.room.autobee;
-        roomIdRef.current = roomId;
-        break;
-      }
-    }
+    await getCalendarRoom({ invite: searchInput });
+  };
 
-    if (!bee) {
-      await getCalendarRoom(searchInput, true);
-    } else {
-      const schedule = await bee.get("schedule");
-      if (schedule && schedule.value && Object.keys(schedule.value).length !== 0) {
-        setCurrentSchedule(jsonToMap(schedule.value.toString()));
-        console.log(jsonToMap(schedule.value.toString()));
-      } else {
-        setCurrentSchedule(new Map());
+  const getCalendarRoom = async (opts = {}) => {
+    const { room, invite } = await roomManagerRef.current.initReadyRoom(opts);
+
+    roomIdRef.current = room.roomId;
+    console.log("invite key:", invite);
+
+    addRoomNamespaceToDb(room, localBeeRef.current);
+
+    return room;
+  };
+
+  const loadSharedDbs = async (localBee) => {
+    const data = await localBee.get("roomsDetails");
+
+    if (data) {
+      const dataMap = jsonToMap(data.value.toString());
+      const rooms = [];
+      for (const [roomId] of dataMap) {
+        const room = await getCalendarRoom({ roomId });
+        rooms.push(room);
       }
+      return rooms;
     }
   };
 
@@ -47,4 +68,34 @@ export default () => {
       <input type="text" placeholder="invite key (for join)" onChange=${(e) => setSearchInput(e.target.value)} />
     </section>
   `;
+};
+
+async function addRoomNamespaceToDb(room, localBee) {
+  // store room id in personal db
+  let roomsDetailsDb = await localBee.get("roomsDetails");
+  const roomsDetails = roomsDetailsDb && roomsDetailsDb.value ? jsonToMap(roomsDetailsDb.value.toString()) : new Map();
+
+  if (!roomsDetails.has(room.roomId)) {
+    roomsDetails.set(room.roomId, "no value");
+    localBee.put("roomsDetails", Buffer.from(mapToJson(roomsDetails)));
+  }
+}
+
+// load personal DB (Hyperbee)
+const initPersonalDB = async () => {
+  try {
+    const storagePath = "./calendarStorage/localBee";
+    const core = new Hypercore(storagePath);
+    await core.ready();
+
+    const bee = new Hyperbee(core, {
+      keyEncoding: "utf-8",
+      valueEncoding: c.any,
+    });
+    await bee.ready();
+
+    return bee;
+  } catch (error) {
+    console.error("Error initializing Personal database:", error);
+  }
 };

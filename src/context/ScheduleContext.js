@@ -1,19 +1,18 @@
 import { html } from "htm/react";
 import { createContext, useEffect, useState, useRef } from "react";
-import { mapToJson, jsonToMap } from "../api/data-formats/json-map-switch";
-import { RoomManager } from "../api/back-end/RoomManager";
+import { mapToJson, jsonToMap } from "../api/json-map-switch";
+import { RoomManager } from "../api/RoomManager";
 import Hyperbee from "hyperbee";
 import Hypercore from "hypercore";
 import b4a from "b4a";
 import c from "compact-encoding";
-// TODO: use compact encoding for encoding and decoding
 
 const ScheduleContext = createContext();
 
 const ScheduleProvider = ({ children }) => {
   const [currentSchedule, setCurrentSchedule] = useState(new Map());
   const [sharedDbObject, setSharedDbObject] = useState(new Object());
-  const [inviteHexKey, setInviteHexKey] = useState("test");
+  const [inviteHexKey, setInviteHexKey] = useState("no invite key stored");
   const db = useRef();
   const roomManagerRef = useRef();
   const calendarNameRef = useRef("My Calendar");
