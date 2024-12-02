@@ -1,0 +1,11 @@
+#bar {
+  height: 40px;
+  background-color: grey;
+  -webkit-app-region: drag;
+}
+
+#root * {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

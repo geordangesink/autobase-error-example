@@ -1,0 +1,46 @@
+npx browser-sync start --server --files "./public/index.html" --no-open --no-notify --directory
+
+
+FIX DRAG EXCEPTION AND SELECT ALL WHEN ALL IS MULTIDAY
+
+FULL DAYS ON TOP AS SMALL BAR
+
+EDIT ON CLICK
+
+CREATE ON DRAG (CREATE FULL DAY ON CLICK)
+
+DELETE WHEN MOSE HOVERS AND BACKSPACE PRESSED (PROMT CAN BE ACCEPTED WITH ENTER)
+
+fix october additional full day on repeat 
+
+////////////////////////////////
+
+CREATE NEW SCHEDULE
+
+Private
+
+    Event
+        start-date (as string number) : 
+            date|time - date|time : 
+            title :
+            description :
+            color : 
+            notification?
+
+            peer : 
+
+    Task
+        start-date (as string number) : 
+            date|time : 
+            title :
+            description :
+            complete : true|false
+            color : 
+            notification?
+    
+            peer :
+
+
+DATES HAVE TO BE SAVED AS UTC and read with according GMT
+
+LOOK AT EXAMPLE REACT APP BY HOLEPUNCH FOR FILE MANAGEMENT
